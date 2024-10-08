@@ -6,55 +6,54 @@
  * Time: 15:54
  */
 
-namespace Enhavo\Bundle\ResourceBundle\Tests\Batch;
+namespace Enhavo\Bundle\ResourceBundle\Tests\Column;
 
-use Doctrine\ORM\EntityRepository;
-use Enhavo\Bundle\ResourceBundle\Batch\Batch;
-use Enhavo\Bundle\ResourceBundle\Batch\BatchManager;
+use Enhavo\Bundle\ResourceBundle\Column\Column;
+use Enhavo\Bundle\ResourceBundle\Column\ColumnManager;
+use Enhavo\Bundle\ResourceBundle\Tests\Mock\ResourceMock;
 use Enhavo\Component\Type\FactoryInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
-class BatchManagerTest extends TestCase
+class ColumnManagerTest extends TestCase
 {
-    private function createDependencies(): BatchManagerTestDependencies
+    private function createDependencies(): ColumnManagerTestDependencies
     {
-        $dependencies = new BatchManagerTestDependencies();
+        $dependencies = new ColumnManagerTestDependencies();
         $dependencies->factory = $this->getMockBuilder(FactoryInterface::class)->disableOriginalConstructor()->getMock();
         $dependencies->checker = $this->getMockBuilder(AuthorizationCheckerInterface::class)->getMock();
-        $dependencies->repository = $this->getMockBuilder(EntityRepository::class)->disableOriginalConstructor()->getMock();
         return $dependencies;
     }
 
-    private function createInstance(BatchManagerTestDependencies $dependencies): BatchManager
+    private function createInstance(ColumnManagerTestDependencies $dependencies): ColumnManager
     {
-        return new BatchManager($dependencies->factory, $dependencies->checker);
+        return new ColumnManager($dependencies->factory, $dependencies->checker);
     }
 
-    public function testGetBatches()
+    public function testGetColumns()
     {
         $dependencies = $this->createDependencies();
         $dependencies->checker->method('isGranted')->willReturn(true);
         $dependencies->factory->method('create')->willReturnCallback(function ($options, $key) {
             if ($options['type'] === 'test') {
-                $batch = $this->getMockBuilder(Batch::class)->disableOriginalConstructor()->getMock();
-                $batch->method('isEnabled')->willReturn(true);
-                $batch->method('getPermission')->willReturn(true);
-                $batch->method('createViewData')->willReturn(['name' => 'test']);
-                return $batch;
+                $column = $this->getMockBuilder(Column::class)->disableOriginalConstructor()->getMock();
+                $column->method('isEnabled')->willReturn(true);
+                $column->method('getPermission')->willReturn(true);
+                $column->method('createResourceViewData')->willReturn(['name' => 'test']);
+                return $column;
             }
         });
         $manager = $this->createInstance($dependencies);
 
-        $batches = $manager->getBatches([
+        $columns = $manager->getColumns([
             'create' => [
                 'type' => 'test',
             ]
-        ], $dependencies->repository);
+        ]);
 
-        $this->assertCount(1, $batches);
-        $this->assertEquals('test', $batches['create']->createViewData()['name']);
+        $this->assertCount(1, $columns);
+        $this->assertEquals('test', $columns['create']->createResourceViewData(new ResourceMock())['name']);
     }
 
     public function testNotEnabled()
@@ -63,21 +62,21 @@ class BatchManagerTest extends TestCase
         $dependencies->checker->method('isGranted')->willReturn(true);
         $dependencies->factory->method('create')->willReturnCallback(function ($options, $key) {
             if ($options['type'] === 'test') {
-                $batch = $this->getMockBuilder(Batch::class)->disableOriginalConstructor()->getMock();
-                $batch->method('isEnabled')->willReturn(false);
-                $batch->method('getPermission')->willReturn(true);
-                return $batch;
+                $column = $this->getMockBuilder(Column::class)->disableOriginalConstructor()->getMock();
+                $column->method('isEnabled')->willReturn(false);
+                $column->method('getPermission')->willReturn(true);
+                return $column;
             }
         });
         $manager = $this->createInstance($dependencies);
 
-        $batches = $manager->getBatches([
+        $columns = $manager->getColumns([
             'create' => [
                 'type' => 'test',
             ]
-        ], $dependencies->repository);
+        ]);
 
-        $this->assertCount(0, $batches);
+        $this->assertCount(0, $columns);
     }
 
     public function testNoPermission()
@@ -86,21 +85,21 @@ class BatchManagerTest extends TestCase
         $dependencies->checker->method('isGranted')->willReturn(false);
         $dependencies->factory->method('create')->willReturnCallback(function ($options, $key) {
             if ($options['type'] === 'test') {
-                $batch = $this->getMockBuilder(Batch::class)->disableOriginalConstructor()->getMock();
-                $batch->method('isEnabled')->willReturn(true);
-                $batch->method('getPermission')->willReturn(true);
-                return $batch;
+                $column = $this->getMockBuilder(Column::class)->disableOriginalConstructor()->getMock();
+                $column->method('isEnabled')->willReturn(true);
+                $column->method('getPermission')->willReturn(true);
+                return $column;
             }
         });
         $manager = $this->createInstance($dependencies);
 
-        $batches = $manager->getBatches([
+        $columns = $manager->getColumns([
             'create' => [
                 'type' => 'test',
             ]
-        ], $dependencies->repository);
+        ]);
 
-        $this->assertCount(0, $batches);
+        $this->assertCount(0, $columns);
     }
 
     public function testEmptyPermission()
@@ -109,27 +108,26 @@ class BatchManagerTest extends TestCase
         $dependencies->checker->method('isGranted')->willReturn(false);
         $dependencies->factory->method('create')->willReturnCallback(function ($options, $key) {
             if ($options['type'] === 'test') {
-                $batch = $this->getMockBuilder(Batch::class)->disableOriginalConstructor()->getMock();
-                $batch->method('isEnabled')->willReturn(true);
-                $batch->method('getPermission')->willReturn(null);
-                return $batch;
+                $column = $this->getMockBuilder(Column::class)->disableOriginalConstructor()->getMock();
+                $column->method('isEnabled')->willReturn(true);
+                $column->method('getPermission')->willReturn(null);
+                return $column;
             }
         });
         $manager = $this->createInstance($dependencies);
 
-        $batches = $manager->getBatches([
+        $columns = $manager->getColumns([
             'create' => [
                 'type' => 'test',
             ]
-        ], $dependencies->repository);
+        ]);
 
-        $this->assertCount(1, $batches);
+        $this->assertCount(1, $columns);
     }
 }
 
-class BatchManagerTestDependencies
+class ColumnManagerTestDependencies
 {
     public FactoryInterface|MockObject $factory;
     public AuthorizationCheckerInterface|MockObject $checker;
-    public EntityRepository|MockObject $repository;
 }
